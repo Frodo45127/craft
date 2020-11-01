@@ -165,11 +165,8 @@ def run(args, command):
 def getABI():
     if CraftBootstrap.isWin():
         platform = "windows"
-        abi, compiler = CraftBootstrap.promptForChoice("Select compiler",
-                                                       [("Mingw-w64", ("mingw", "gcc")),
-                                                        ("Microsoft Visual Studio 2019", ("msvc2019", "cl")),
-                                                        ], "Microsoft Visual Studio 2019")
-        abi += f"_64"
+        abi = "msvc2019_64"
+        compiler = "cl"
 
     elif CraftBootstrap.isUnix():
         if CraftBootstrap.isMac():
@@ -189,7 +186,7 @@ def getABI():
 def setUp(args):
     while not args.prefix:
         print("Where to you want us to install Craft")
-        prefix = Path("C:/CraftRoot/" if CraftBootstrap.isWin() else "~/CraftRoot") 
+        prefix = Path("C:/CraftRoot/" if CraftBootstrap.isWin() else "~/CraftRoot")
         args.prefix = os.path.expanduser(input(f"Craft install root: [{prefix}]: ") or prefix)
 
     if not args.dry_run and not os.path.exists(args.prefix):
@@ -205,17 +202,8 @@ def setUp(args):
     print(f"Craft will be installed to: {args.prefix}")
     abi = getABI()
 
-    useANSIColor = CraftBootstrap.promptForChoice("Do you want to enable the support for colored logs",
-                                                [("Yes", True), ("No", False)],
-                                                        default="Yes")
-    if useANSIColor:
-        CraftBootstrap.enableANSISupport()
-
     installShortCut = False
-    if CraftBootstrap.isWin():
-        installShortCut = CraftBootstrap.promptForChoice("Do you want to install a StartMenu entry",
-                                                         [("Yes", True), ("No", False)],
-                                                         default="Yes")
+
     if not args.dry_run:
         if args.localDev:
             shutil.copytree(args.localDev, os.path.join(args.prefix, f"craft-{args.branch}"),
@@ -230,7 +218,7 @@ def setUp(args):
     boot = CraftBootstrap(args.prefix, args.branch, args.dry_run)
     boot.setSettignsValue("Paths", "Python", os.path.dirname(sys.executable))
     boot.setSettignsValue("General", "ABI", abi)
-    boot.setSettignsValue("General", "AllowAnsiColor", useANSIColor)
+    boot.setSettignsValue("General", "AllowAnsiColor", False)
     py = shutil.which("py")
     if py:
         py2 = subprocess.getoutput(f"""{py} -2 -c "import sys; print(sys.executable)" """)
@@ -251,14 +239,6 @@ def setUp(args):
     run(args, cmd)
     if not args.dry_run:
         shutil.rmtree(os.path.join(args.prefix, f"craft-{args.branch}"))
-    if installShortCut:
-        run(args, ["craft-startmenu-entry"])
-
-    # install toast notifications
-    if CraftBootstrap.isWin():
-        run(args, ["dev-utils/snoretoast"])
-    elif CraftBootstrap.isMac():
-        run(args, ["dev-utils/terminal-notifier"])
 
     print("Setup complete")
     print()
